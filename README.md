@@ -317,6 +317,7 @@ G, causal_df = create_causal_network(
 The code above produced the following network and metrics:
 
 <img width="939" alt="Screenshot 2025-02-26 at 2 51 13 PM" src="https://github.com/user-attachments/assets/7e6de768-65b2-4a28-9672-5b1861061150" />
+
 ```
 Network Summary:
 Number of nodes: 9
@@ -357,7 +358,9 @@ RR[ms] → Tidal_Volume: F=72.18, p=0.00000, correlation=-0.767
 HR[bpm] → Tidal_Volume: F=69.79, p=0.00000, correlation=0.788
 Ventilatory_Exchange → Respiration_Rate: F=65.86, p=0.00000, correlation=0.846
 ```
+
 ## Key Insights from PhysioNexus Network Analysis
+
 ### Central Regulators and System Integration
 The network analysis reveals a physiological system with clear organization and multiple levels of regulation during incremental exercise. Muscle oxygenation (SmO2) and blood lactate emerge as the most influential variables, each influencing seven other physiological parameters. This positions them as master regulators of the exercise response, suggesting that local muscle conditions drive systemic adaptations rather than simply responding to them.
 
