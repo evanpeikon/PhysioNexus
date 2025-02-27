@@ -23,11 +23,10 @@ The statistical significance of each relationship is measured by its F-statistic
 
 ## Network Metrics and Their Interpretation
 PhysioNexus provides several metrics that reveal different aspects of the physiological system's structure:
-Out-degree reveals a variable's influence by counting how many other variables it affects. High out-degree variables act as system "drivers" or control points that regulate multiple physiological processes.
-
-In-degree shows how responsive a variable is by counting how many variables affect it. High in-degree variables represent integration points where multiple physiological signals converge.
-Degree centrality combines both measures to identify the most connected variables overall, highlighting the central parameters in the physiological network regardless of direction.
-Betweenness centrality identifies mediator variables that frequently appear on paths between other variables. These "brokers" represent critical intermediate steps in physiological cascades, connecting different systems or processes.
+- Out-degree reveals a variable's influence by counting how many other variables it affects. High out-degree variables act as system "drivers" or control points that regulate multiple physiological processes.
+- In-degree shows how responsive a variable is by counting how many variables affect it. High in-degree variables represent integration points where multiple physiological signals converge.
+- Degree centrality combines both measures to identify the most connected variables overall, highlighting the central parameters in the physiological network regardless of direction.
+- Betweenness centrality identifies mediator variables that frequently appear on paths between other variables. These "brokers" represent critical intermediate steps in physiological cascades, connecting different systems or processes.
 
 # 🧬 DIY Guide To Using PhysioNexus
 ## Dependencies 
