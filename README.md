@@ -37,11 +37,10 @@ The most streamlined approach is to install PhysioNexus directly from GitHub usi
 
 You can install PhysioNexus as a Python package directly from Github using the code below:
 
-```Bash
-# Install the package directly from GitHub
-!pip install git+https://github.com/evanpeikon/PhysioNexus.git 
-```
 ```python
+# Install the package directly from GitHub (Remove ! when running from Bash command line. Keep ! when running from notebook environment)
+!pip install git+https://github.com/evanpeikon/PhysioNexus.git 
+
 # Import and use
 from PhysioNexus import PhysioNexus
 ```
