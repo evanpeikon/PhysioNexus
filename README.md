@@ -28,10 +28,53 @@ PhysioNexus provides several metrics that reveal different aspects of the physio
 - Degree centrality combines both measures to identify the most connected variables overall, highlighting the central parameters in the physiological network regardless of direction.
 - Betweenness centrality identifies mediator variables that frequently appear on paths between other variables. These "brokers" represent critical intermediate steps in physiological cascades, connecting different systems or processes.
 
-# 🧬 DIY Guide To Using PhysioNexus
-## Dependencies 
-Before using PhysioNexus you'll need to import the following libraries:
+# 🧬 Implementation: A DIY Guide To Using PhysioNexus
+
+PhysioNexus can be integrated into your analysis workflow in two ways:
+
+## Method 1: Install as a Python Package (Recommended)
+The most streamlined approach is to install PhysioNexus directly from GitHub using pip. This makes the function available for import in any of your Python environments without cluttering your code. Additionally, this method ensures you always have access to the latest version and keeps your analysis scripts clean and focused on your specific research questions.
+
+You can install PhysioNexus as a Python package directly from Github using the code below:
+
 ```python
+# Install the package directly from GitHub
+!pip install git+https://github.com/evanpeikon/PhysioNexus.git
+
+# Import and use
+from PhysioNexus import PhysioNexus
+```
+```python
+# Example Usaage
+data = pd.read_csv('Path to your CSV file', header=0)
+
+# Run PhysioNexus directly with custom parameters
+G, causal_df = PhysioNexus(
+    data=data,  
+    exclude_cols=['Time[s]', 'Time[hh:mm:ss]'],   # Replace with your non-feature columns
+    corr_threshold=0.6,                           # Correlation threshold for considering relationships
+    f_stat_threshold=10,                          # F-statistic threshold for Granger causality
+    p_value_threshold=0.05,                       # P-value threshold for statistical significance
+    max_lag=3,                                    # Maximum lag to consider for Granger causality
+    output_dir=None                               # Optional output directory to store results
+)
+
+# Display the causal relationships (if any were found)
+if causal_df is not None:
+    print("Found causal relationships:")
+    print(causal_df)
+else:
+    print("No causal relationships were found meeting the specified criteria.")
+```
+
+## Method 2: Copy the Function Directly
+
+For situations where you prefer to have all code self-contained or can't install packages, you can use PhysioNexus as a standard function by copying it directly into your project. This approach gives you the flexibility to modify the code for your specific needs but requires manually updating when improvements are made to the original function.
+
+To implement this method simply copy the function copy below, then paste it into your Python script, Google Collab notebook, or Juypter notebook:
+
+```python
+# Import dependencies
 import pandas as pd
 import numpy as np
 import networkx as nx
@@ -39,10 +82,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from statsmodels.tsa.stattools import grangercausalitytests
 import os
-```
 
-## Implementation and Example Useage
-```python
 def PhysioNexus(data, exclude_cols=2, corr_threshold=0.6, f_stat_threshold=10, p_value_threshold=0.05, max_lag=2, output_dir=None):
     # Set output directory
     if output_dir is None:
@@ -298,20 +338,38 @@ exercised at a progressively increasing intensity level until they could no long
 - Muscle oxygenation
 - Blood lactate
 
+> Note: This case study assumes you've installed PhysioNexus using Method 1, from the implementation section above, though the functionality is identical with either implementation approach.
+
 ```python
+# Install the PhysioNexus package directly from GitHub
+!pip install git+https://github.com/evanpeikon/PhysioNexus.git
+
+# Import PhysioNexus
+from PhysioNexus import PhysioNexus
+
 # Load Data
 data = pd.read_csv('ramp_incremental_test.csv', header=0)
-data = data.drop(['Time[hh:mm:ss]'], axis=1) # Remove time stamps 
+data.dropna(inplace=True) # Remove rows / columns with missing values 
 
-# Create the causal network
-G, causal_df = create_causal_network(
-    data=data,                         
-    exclude_cols=[data.columns[0], data.columns[1]],  # Exclude meta data columns 
-    corr_threshold=0.6,                # Custom correlation threshold
-    f_stat_threshold=30,               # Custom F-statistic threshold
-    p_value_threshold=0.05,            # Custom p-value threshold
-    max_lag=2                          # Look at up to 2 lags
+# Run PhysioNexus directly with custom parameters
+G, causal_df = PhysioNexus(
+    data=data,  
+    exclude_cols=['Time[s]', 'Time[hh:mm:ss]'],
+    corr_threshold=0.6,
+    f_stat_threshold=10,
+    p_value_threshold=0.05,
+    max_lag=3,
+    output_dir=None
 )
+
+'''
+# Optional: Display the causal relationships (if any were found)
+if causal_df is not None:
+    print("Found causal relationships:")
+    print(causal_df)
+else:
+    print("No causal relationships were found meeting the specified criteria.")
+'''
 ```
 The code above produced the following network and metrics:
 
