@@ -234,16 +234,27 @@ def PhysioNexus(data, exclude_cols=2, corr_threshold=0.6, f_stat_threshold=10, p
 # Example Useage
 '''
 data = pd.read_csv('your file path', header=0)
-data = data.fillna(0)
-data = data.drop(['Time[hh:mm:ss]'], axis=1) # remove if you don't have a time column
+data.dropna(inplace=True)
 
-
+# Run PhysioNexus directly with your parameters
 G, causal_df = PhysioNexus(
-    data=data,                     # Your already loaded DataFrame
-    exclude_cols= [data.columns[0], data.columns[1]], # Exclude specific columns by name
-    corr_threshold=0.6,            # Custom correlation threshold
-    f_stat_threshold=10,           # Custom F-statistic threshold
-    p_value_threshold=0.05,        # Custom p-value threshold
-    max_lag=3)                     # Look at up to 2 lags
+    data=data,                                   # Your already loaded DataFrame
+    exclude_cols=['Time[s]', 'Time[hh:mm:ss]'], # Exclude specific columns by name
+    corr_threshold=0.6,                         # Custom correlation threshold
+    f_stat_threshold=10,                        # Custom F-statistic threshold
+    p_value_threshold=0.05,                     # Custom p-value threshold
+    max_lag=3,                                  # Look at up to 2 lags
+    output_dir='physionexus_results'
+)
+
+# Display the causal relationships (if any were found)
+if causal_df is not None:
+    print("Found causal relationships:")
+    print(causal_df)
+else:
+    print("No causal relationships were found meeting the specified criteria.")
 
 '''
+
+
+
