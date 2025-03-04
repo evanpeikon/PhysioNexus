@@ -42,7 +42,7 @@ You can install PhysioNexus as a Python package directly from Github using the c
 !pip install git+https://github.com/evanpeikon/PhysioNexus.git 
 
 # Import and use
-from PhysioNexus import PhysioNexus
+from physionexus import PhysioNexus
 ```
 ```python
 # Example Usaage
@@ -345,7 +345,7 @@ exercised at a progressively increasing intensity level until they could no long
 !pip install git+https://github.com/evanpeikon/PhysioNexus.git
 
 # Import PhysioNexus
-from PhysioNexus import PhysioNexus
+from physionexus import PhysioNexus
 
 # Load Data
 data = pd.read_csv('ramp_incremental_test.csv', header=0)
