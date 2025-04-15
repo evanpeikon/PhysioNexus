@@ -327,15 +327,18 @@ To demonstrate the tool's capabilities, we'll apply it to a case study using dat
 exercised at a progressively increasing intensity level until they could no longer continue, allowing us to observe the full spectrum of physiological responses from rest to maximal exertion. The data from this test was loaded into a pandas DataFrame and contains time series measurements for several physiological metrics:
 
 - VO2 (oxygen consumption)
-- Heart rate 
+- Heart rate
+- Heart rate variability 
 - Power output
-- Muscle recruitment 
+- Cycle rate
+- Muscle recruitment (EMG)
 - Respiratory rate 
 - Tidal volume 
 - Ventilatory exchange 
 - Cerebral oxygenation
 - Heart rate variability
 - Muscle oxygenation
+- Skin temperature
 - Blood lactate
 
 > Note: This case study assumes you've installed PhysioNexus using Method 1, from the implementation section above, though the functionality is identical with either implementation approach.
