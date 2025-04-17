@@ -10,6 +10,9 @@ The biological reality of feedback loops and circular relationships complicates 
 # 🧬 How Does PhysioNexus Work?
 ## Overview 
 PhysioNexus analyzes time series physiological data to reveal cause-and-effect relationships between variables like heart rate, oxygen consumption, and muscle oxygenation. The analysis follows a systematic approach:
+
+<img width="1072" alt="Screenshot 2025-04-17 at 1 11 01 PM" src="https://github.com/user-attachments/assets/c2406218-d9f0-4f89-8928-30f2835a2bb2" />
+
 - (1) Correlation Analysis: First, the program calculates correlations between all pairs of time series physiologic metrics.
 - (2) Causality Testing: For pairs that exceed a specified correlation threshold, it performs Granger causality tests to determine potential causal relationships.
 - (3) Network Construction: The results are used to build a directed graph where nodes represent physiological variables and edges represent causal relationships.
@@ -17,6 +20,9 @@ PhysioNexus analyzes time series physiological data to reveal cause-and-effect r
 - (5) Metric Calculation: Various network metrics are calculated to identify key influencers and relationship structures.
 
 ## Interpreting The Network Visualization
+
+<img width="359" alt="Screenshot 2025-04-17 at 1 12 10 PM" src="https://github.com/user-attachments/assets/73225336-2504-489e-9479-ab7db432b62d" />
+
 The network visualization transforms complex physiological relationships into an intuitive visual map. Arrows between variables show the direction of influence—which variable is causing changes in another. Blue connections indicate positive relationships (variables increase together), while red connections show negative relationships (one increases as another decreases). Thicker connections represent stronger correlations, and larger nodes indicate variables that influence many others, making key physiological drivers immediately apparent.
 
 The statistical significance of each relationship is measured by its F-statistic and p-value. An F-statistic of 1-4 suggests weak causality with minimal predictive power, while 4-10 indicates moderate evidence with meaningful relationships. Strong causal evidence appears with F-statistics of 10-30, while values above 30 represent extremely strong causal relationships with overwhelming statistical significance (p << 0.001) and major predictive power.
