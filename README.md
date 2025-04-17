@@ -1,4 +1,4 @@
-# 🧬 PhysioNexus Overview 
+# 🧬 PhysioNexus: Mapping Cause and Effect In Time-Series Physiological Data
 When athletes exercise intensely, their bodies respond with synchronized changes across multiple systems: heart rate and oxygen consumption increases, muscle oxygenation decreases, and muscle's electrical patterns oscillate. Understanding how these systems influence each other presents a significant challenge in exercise physiology. Traditional analysis methods examine these variables individually or use simple correlations, missing the critical question of causality – which physiological variables are driving changes in others, and which are merely responding?
 
 PhysioNexus solves this problem by mapping cause-and-effect relationships in physiological time series data. Using Granger causality testing, it identifies predictive relationships between variables to transform complex measurements into clear network visualizations that show how systems interact.
