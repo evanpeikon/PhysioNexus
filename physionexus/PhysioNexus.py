@@ -7,6 +7,7 @@ from statsmodels.tsa.stattools import grangercausalitytests
 import statsmodels.api as sm
 import os
 import scipy.stats
+import plotly.graph_objects as go
 
 def check_multivariate_granger_causality(data, target, predictors, max_lag=2, f_stat_threshold=10, p_value_threshold=0.05):
     """
@@ -187,6 +188,58 @@ def visualize_enhanced_network(G, output_dir):
     # Display the plot
     plt.show()
     print(f"Network visualization saved to {os.path.join(output_dir, 'causal_network.png')}")
+
+def create_alluvial_diagram(G, output_dir):
+    """
+    Create an alluvial (Sankey) diagram showing causal flows
+    """
+    if G.number_of_nodes() == 0:
+        print("No nodes in graph. Skipping alluvial diagram.")
+        return
+        
+    # Create source, target, and value lists for Sankey diagram
+    source = []
+    target = []
+    value = []
+    label = []
+    
+    # Get unique nodes and assign indices
+    all_nodes = list(G.nodes())
+    node_dict = {node: i for i, node in enumerate(all_nodes)}
+    
+    # Create node labels
+    label = all_nodes
+    
+    # Create links
+    for u, v, data in G.edges(data=True):
+        source.append(node_dict[u])
+        target.append(node_dict[v])
+        
+        # Use F-statistic as value for line thickness
+        if 'f_stat' in data:
+            value.append(data['f_stat'])
+        else:
+            value.append(abs(data.get('correlation', 0.5)) * 10)  # Default fallback
+    
+    # Create figure
+    fig = go.Figure(data=[go.Sankey(
+        node=dict(
+            pad=15,
+            thickness=20,
+            line=dict(color="black", width=0.5),
+            label=label
+        ),
+        link=dict(
+            source=source,
+            target=target,
+            value=value
+        )
+    )])
+    
+    fig.update_layout(title_text="Causal Flow Diagram", font_size=10)
+    fig.write_html(os.path.join(output_dir, 'causal_flow.html'))
+    fig.show()  # Display the plot
+    print(f"Alluvial diagram saved to {os.path.join(output_dir, 'causal_flow.html')}")
 
 def create_causal_matrix(G, output_dir):
     """
@@ -381,6 +434,9 @@ def PhysioNexus(data, exclude_cols=2, corr_threshold=0.6, f_stat_threshold=10,
     if G.number_of_nodes() > 0:
         # Enhanced network visualization
         visualize_enhanced_network(G, output_dir)
+        
+        # Alluvial diagram
+        create_alluvial_diagram(G, output_dir)
         
         # Causal matrix
         create_causal_matrix(G, output_dir)
