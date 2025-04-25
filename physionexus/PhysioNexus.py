@@ -425,10 +425,7 @@ def PhysioNexus(data, exclude_cols=2, corr_threshold=0.6, f_stat_threshold=10,
     plt.title('Correlation Matrix Heatmap')
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'correlation_heatmap.png'))
-    
-    # Display the plot
-    plt.show()
-    print(f"Correlation heatmap saved to {os.path.join(output_dir, 'correlation_heatmap.png')}")
+        print(f"Correlation heatmap saved to {os.path.join(output_dir, 'correlation_heatmap.png')}")
     
     # Create enhanced visualizations
     if G.number_of_nodes() > 0:
