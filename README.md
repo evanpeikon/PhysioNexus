@@ -116,27 +116,14 @@ G, causal_df = PhysioNexus(
 # causal_df.head()
 ```
 
+# 🧬 Human Performance Case Study
+## Background
+To demonstrate PhysioNexus' capabilities, I analyzed data from an elite cyclist performing a ramp incremental exercise test to exhaustion. The test started at 150 watts on an indoor bike trainer with power increasing by 25 watts every 4 minutes until the athlete could no longer maintain the required power output. This protocol allowed us to observe the full spectrum of physiological responses from rest to maximal exertion.
 
-# 🧬 Elite Athlete Case Study
-To demonstrate the tool's capabilities, we'll apply it to a case study using data from an athlete performing a ramp incremental exercise test to exhaustion. In this test, the athlete 
-exercised at a progressively increasing intensity level until they could no longer continue, allowing us to observe the full spectrum of physiological responses from rest to maximal exertion. The data from this test was loaded into a pandas DataFrame and contains time series measurements for several physiological metrics:
+The data included comprehensive physiological measurements including VO2 (ml/kg/min), heart rate (bpm), heart rate variability (ms), power (watts), cycle rate (rpm), muscle recruitment (mV), respiratory rate (breath/minute), tidal volume (L), ventilatory exchange (L/min), cerebral oxygenation (%), blood oxygenation (%), muscle oxygenation (%), skin temperature (C), and blood lactate (mmol). 
 
-- VO2 (oxygen consumption)
-- Heart rate
-- Heart rate variability 
-- Power output
-- Cycle rate
-- Muscle recruitment (EMG)
-- Respiratory rate 
-- Tidal volume 
-- Ventilatory exchange 
-- Cerebral oxygenation
-- Heart rate variability
-- Muscle oxygenation
-- Skin temperature
-- Blood lactate
-
-> Note: This case study assumes you've installed PhysioNexus using Method 1, from the implementation section above, though the functionality is identical with either implementation approach.
+## Implementation
+PhysioNexus was implemented with multivariate testing to analyze both direct causal relationships and the combined effects of variable groups:
 
 ```python
 # Install the PhysioNexus package directly from GitHub
@@ -146,92 +133,101 @@ exercised at a progressively increasing intensity level until they could no long
 from physionexus import PhysioNexus
 
 # Load Data
-data = pd.read_csv('ramp_incremental_test.csv', header=0)
-data.dropna(inplace=True) # Remove rows / columns with missing values 
+def load_data(path):
+  data = pd.read_csv(path, header=0)
+  data.dropna(inplace=True)
+  return data
 
-# Run PhysioNexus directly with custom parameters
+data = load_data('/content/drive/MyDrive/PhysioNexus/Test2.csv') 
+
+# Define multivariate groups to test
+multivariate_groups = {
+    'SmO2' : ['Ventilatory_Exchange', 'HR[bpm]'],
+    'HR[bpm]' : ['Ventilatory_Exchange', 'SmO2'],
+    'VO2[mL/kg/min]': ['SmO2', 'HR[bpm]'],
+    'HR[bpm]' : ['SmO2', 'VO2[mL/kg/min]'],
+    'Ventilatory_Exchange': ['SmO2', 'VO2[mL/kg/min]'],
+    'Ventilatory_Exchange': ['HR[bpm]', 'SmO2'],
+    'Ventilatory_Exchange': ['HR[bpm]', 'VO2[mL/kg/min]}
+
+# Run PhysioNexus with multivariate causality testing
 G, causal_df = PhysioNexus(
     data=data,  
-    exclude_cols=['Time[s]', 'Time[hh:mm:ss]'],
-    corr_threshold=0.6,
-    f_stat_threshold=10,
-    p_value_threshold=0.05,
-    max_lag=3,
-    output_dir=None
-)
-
+    exclude_cols=['Time[s]', 'Time[hh:mm:ss]'],   # Remove non-feature columns
+    corr_threshold=0.7,                           # Correlation threshold for considering relationships
+    f_stat_threshold=10,                          # F-statistic threshold for Granger causality
+    p_value_threshold=0.05,                       # P-value threshold for statistical significance
+    max_lag=3,                                    # Maximum lag to consider for Granger causality
+    multivariate_groups=multivariate_groups,      # Define groups for multivariate testing
+    output_dir=None)                              
 ```
-The code above produced the following network and metrics:
+The code above produced the following visualizations:
 
-<img width="939" alt="Screenshot 2025-02-26 at 2 51 13 PM" src="https://github.com/user-attachments/assets/7e6de768-65b2-4a28-9672-5b1861061150" />
+#### Figure 1: Causal Network
 
-```
-Network Summary:
-Number of nodes: 9
-Number of edges: 43
+This directed graph below illustrated causal relationships between physiological variables, with blue arrows showing positive linear causality, red arrows indicating negative linear causality, and purple dotted lines representing multivariate causality. The network reveals central roles for SmO2, heart rate, and RR intervals with extensive connections, while also highlighting three multivariate relationships involving combinations of variables jointly influencing specific outcomes.
 
-Top 5 nodes by out-degree (causal influence):
-SmO2: 7 outgoing connections
-Blood_Lactate: 7 outgoing connections
-Ventilatory_Exchange: 6 outgoing connections
-HR[bpm]: 5 outgoing connections
-Cerebral_O2: 5 outgoing connections
+<img width="600" alt="Screenshot 2025-04-25 at 2 47 32 PM" src="https://github.com/user-attachments/assets/727178e3-5866-4c3e-9265-3729f772c4a0" />
 
-Top 5 nodes by in-degree (influenced by others):
-HR[bpm]: 6 incoming connections
-Tidal_Volume: 6 incoming connections
-Respiration_Rate: 5 incoming connections
-RR[ms]: 5 incoming connections
-SmO2: 5 incoming connections
+#### Figure 2: Causal Strength Matrix
 
-Top 5 nodes by degree centrality (overall connection importance):
-SmO2: 1.5000
-Blood_Lactate: 1.5000
-HR[bpm]: 1.3750
-Ventilatory_Exchange: 1.2500
-Respiration_Rate: 1.1250
+This heatmap visualization below displays the F-statistic values representing causal relationship strength between physiological variables during incremental exercise. Darker blue squares indicate stronger causal relationships, with the highest values (142.2) observed between heart rate and RR intervals, while the prominent influence of power output on variables like SmO2 and blood lactate is clearly visible.
 
-Top 5 nodes by betweenness centrality (information flow brokers):
-SmO2: 0.1384
-Blood_Lactate: 0.1384
-Respiration_Rate: 0.0711
-HR[bpm]: 0.0610
-Tidal_Volume: 0.0295
+<img width="500" alt="Screenshot 2025-04-25 at 2 48 05 PM" src="https://github.com/user-attachments/assets/9e2dda29-4d2d-42d7-af25-80c46dca107f" />
 
-Top 5 strongest causal relationships by F-statistic:
-HR[bpm] → RR[ms]: F=107.39, p=0.00000, correlation=-0.922
-HR[bpm] → Ventilatory_Exchange: F=100.49, p=0.00000, correlation=0.926
-RR[ms] → Tidal_Volume: F=72.18, p=0.00000, correlation=-0.767
-HR[bpm] → Tidal_Volume: F=69.79, p=0.00000, correlation=0.788
-Ventilatory_Exchange → Respiration_Rate: F=65.86, p=0.00000, correlation=0.846
-```
+#### Figure 3: Causal Flow Diagram
 
-## Key Insights from PhysioNexus Network Analysis
+This Sankey diagram below depicts the flow of causality through the physiological system, with node width and connecting flow thickness proportional to causal strength. The visualization shows how causal influence propagates from primary variables (heart rate, power, SmO2) through intermediary processes to terminal outcomes, while also highlighting three multivariate groups (shown in the top left) that exert joint causal effects on specific variables.
 
-### Central Regulators and System Integration
-The network analysis reveals a physiological system with clear organization and multiple levels of regulation during incremental exercise. Muscle oxygenation (SmO2) and blood lactate emerge as the most influential variables, each influencing seven other physiological parameters. This positions them as master regulators of the exercise response, suggesting that local muscle conditions drive systemic adaptations rather than simply responding to them.
+<img width="750" alt="Screenshot 2025-04-25 at 2 47 50 PM" src="https://github.com/user-attachments/assets/c9b60914-6a91-4f99-8831-e3ac7adb4ade" />
 
-Heart rate (HR) shows a fascinating dual role as both a major driver (5 outgoing connections) and a highly responsive variable (6 incoming connections). This reflects its position as both a control parameter and an integration point for multiple physiological inputs - a biological control hub that both influences and is influenced by the overall physiological state.
+## Network Metrics and Key Insights 
+### Causal Drivers (Out-degree)
+The top 5 nodes by out-degree (causal influence) in our network are as follows:
+- Muscle Oxygenation (SmO2): 10 outgoing connections
+- Blood Lactate: 10 outgoing connections
+- VO2: 8 outgoing connections
+- Heart rate (HR): 6 outgoing connections
+- Respiratory_Rate (RR): 6 outgoing connections
 
-### Respiratory Chain of Command
-The analysis exposes a clear respiratory control hierarchy, with ventilatory exchange driving respiration rate (F=65.86, extremely strong causality). This confirms established understanding of ventilatory control during exercise, where total minute ventilation increases drive breathing frequency rather than the reverse.
+Key Insight - Peripheral Dominance: Unlike typical endurance athletes where heart rate is the dominant causal driver, this cyclist shows muscle oxygenation (SmO2) and blood lactate as the strongest causal drivers with 10 outgoing connections each. This reveals a peripherally-regulated performance profile where local muscle conditions drive systemic responses. For coaches, this means training interventions should prioritize improving local muscle adaptations such as capillarization, mitochondrial density, and lactate clearance capacity rather than focusing primarily on central cardiovascular improvements. Specifically, incorporating more work at lactate threshold (sweet spot training) and polarized intensity distribution would optimize this athlete's unique physiological profile.
 
-The strong causal relationship from heart rate to ventilatory exchange (F=100.49) demonstrates the tight cardiorespiratory coupling necessary for effective oxygen delivery and carbon dioxide removal during exercise. This cardiovascular-to-respiratory causality suggests that cardiac output drives ventilatory responses rather than the reverse during incremental exercise.
+### Network Centrality (Overall Importance)
+The top 5 nodes by degree centrality (overall connection importance) in our network are:
+- Muscle Oxygenation (SMO2): 1.1429
+- Blood Lactate: 1.0714
+- Respiratory Rate: 1.0000
+- VO2: 0.9286
+- Heart Rate: 0.7143
 
-### Autonomic Nervous System Dynamics
-The strongest causal relationship in the entire network is from heart rate to heart rate variability (RR[ms]) with an F-statistic of 107.39 and a strong negative correlation of -0.922. This powerful inverse relationship reflects the progressive withdrawal of parasympathetic tone and increase in sympathetic drive as exercise intensity increases, a fundamental aspect of autonomic control during exercise.
+Key Insight - Metabolic Monitoring Priority: The centrality metrics definitively identify muscle oxygenation and blood lactate as the most important overall variables in this athlete's physiological network. This suggests implementing real-time muscle oxygenation monitoring during training would provide the most comprehensive insights into this athlete's physiological state. Since SmO2 can be continuously monitored non-invasively while lactate requires intermittent blood sampling, a NIRS-based SmO2 monitor would be the optimal practical solution for daily training guidance. Establishing training zones based on SmO2 thresholds rather than traditional heart rate or power zones would better align with this athlete's unique physiological regulation pattern.
 
-### Tissue Oxygenation as An Information Broker
-Both muscle oxygenation (SmO2) and blood lactate show the highest betweenness centrality (0.1384), indicating they serve as critical information brokers in the physiological network. This suggests these variables connect different physiological subsystems - linking local muscle metabolism with systemic cardiovascular and respiratory responses.
+### Information Flow Hubs (Betweenness Centrality):
+- The op 5 nodes by betweenness centrality (information flow brokers) are:
+- Muscle Oxygenation (SMO2): 0.1676
+- Ventilatory Exchange: 0.1648
+- VO2: 0.1480
+- Blood Lactate: 0.1071
+- Respiratory Rate: 0.0839
 
-The high centrality of these tissue oxygenation markers aligns with current understanding that peripheral chemoreceptors and metabolic sensors in active muscle tissue provide critical feedback that drives cardiorespiratory adjustments during exercise.
+Key Insight - Critical Pathway Identification: Muscle oxygenation, ventilatory exchange, and oxygen consumption form the critical information flow pathway in this athlete's physiological network. These three variables together mediate how other physiological responses interact, suggesting they should be the primary targets for intervention and monitoring. For this athlete, training should be designed with a specific focus on improving the coordination between these systems. Practically, this means implementing "stacked intervals" where one physiological system is pre-fatigued before targeting another (e.g., respiratory pre-fatigue through restricted breathing warm-up before high-intensity intervals) to enhance the integration between these key regulatory hubs.
 
-### Clinical and Training Implications
-These network results suggest that interventions targeting muscle oxygenation and blood lactate might have the most widespread effects across multiple physiological systems. For athletes and coaches, this suggests that training strategies focused on improving muscle oxygen utilization or lactate handling may have cascading benefits across cardiorespiratory function.
-The dual role of heart rate as both causal driver and recipient highlights why heart rate monitoring remains such an effective and comprehensive training metric - it both influences and reflects overall physiological status during exercise.
+### Strongest Causal Relationships
+- The top linear causal relationships by F-statistic in this network are as follows:
+- Heart rate → Respiratory Rate: F=142.16, p=0.00000, correlation=-0.955
+- Heart rate → Ventilatory_Exchange: F=103.26, p=0.00000, correlation=0.929
+- Power → SmO2: F=100.67, p=0.00000, correlation=-0.613
+- Power → Blood Lactate: F=100.67, p=0.00000, correlation=0.613
 
-The analysis also shows that respiration rate, while an important variable, is primarily a downstream responder rather than an initiating driver. This suggests that breathing frequency training interventions might be less effective than those targeting upstream variables like ventilatory exchange or heart rate.
-Overall, this network analysis provides evidence for a hierarchical yet interconnected physiological control system during exercise, where local muscle conditions drive systemic cardiovascular and respiratory responses through complex feedback and feed-forward mechanisms.
+Key Insight - Direct Performance Levers: The strongest causal relationships reveal four primary "control knobs" that directly drive physiological responses: heart rate's effect on breathing (HR→RR, HR→Ventilatory Exchange), and power output's dual effect on muscle oxygenation and blood lactate. For the coach, this means power-based training should be precisely calibrated, as even small changes in power output will trigger substantial muscle oxygenation and lactate responses. This athlete requires very narrow, precisely-defined training zones compared to typical athletes. The data suggests establishing micro-zones with 10-20 watt increments rather than the standard ~50 watt zones would optimize training specificity and ensure targeted physiological adaptations.
+
+### Multivariate Causality
+Multivariate causal relationships revealed by this analysis include:
+- Group(Ventilatory Exchange, Heart Rate) → SmO2: F=14.22, p=0.00000, lag=2
+- Group(SmO2, Heart Rate) → VO2 : F=47.86, p=0.00000, lag=1
+- Group(Heart Rate, VO2) → Ventilatory Exchange: F=21.64, p=0.00000, lag=1
+
+Key Insight - Integrated Systems Approach: The multivariate analysis reveals sophisticated regulation where combinations of variables jointly influence outcomes in ways that single variables cannot. Most notably, muscle oxygenation appears to be jointly controlled by the combination of ventilation and heart rate rather than by either variable independently. This has profound training implications, indicating that isolated interventions targeting either cardiac output or breathing mechanics alone won't optimize this athlete's muscle oxygenation. Instead, combined interventions are required. Specifically, a respiratory muscle training program synchronized with cardiac interval training would more effectively improve this athlete's muscle oxygenation dynamics than either intervention alone, creating a multiplicative rather than additive training effect.
 
 # 🧬 Potential Applications, Limitations, and Future Work 
 ## Potential Applications 
