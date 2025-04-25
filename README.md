@@ -1,11 +1,11 @@
 # 🧬 PhysioNexus: Mapping Cause and Effect In Time-Series Physiological Data
-When athletes exercise intensely, their bodies respond with synchronized changes across multiple systems: heart rate and oxygen consumption increases, muscle oxygenation decreases, and muscle's electrical patterns oscillate. Understanding how these systems influence each other presents a significant challenge in exercise physiology. Traditional analysis methods examine these variables individually or use simple correlations, missing the critical question of causality – which physiological variables are driving changes in others, and which are merely responding?
+During intense exercise our bodies responds with synchronized changes across multiple systems: heart rate and oxygen consumption increase, muscle oxygenation decreases, and muscle's electrical patterns oscillate. Understanding how these systems influence each other presents a significant challenge in exercise physiology. Traditional analysis methods examine these variables individually or use simple correlations, missing the critical question of causality – which physiological variables are driving changes in others, and which are merely responding?
 
-PhysioNexus solves this problem by mapping cause-and-effect relationships in physiological time series data. Using Granger causality testing, it identifies predictive relationships between variables to transform complex measurements into clear network visualizations that show how systems interact.
+PhysioNexus solves this problem by mapping cause-and-effect relationships in physiological time series data. Using both Granger causality and multivariate testing approaches, it identifies predictive relationships between variables to transform complex measurements into clear network visualizations that show how systems interact.
 
 Granger causality defines causation through prediction: if variable A "Granger-causes" variable B, then knowing the history of both A and B improves predictions of B's future values compared to using B's history alone. For example, if muscle oxygenation (SmO2) Granger-causes oxygen consumption (VO2), then previous SmO2 and VO2 values together better predict future VO2 than past VO2 measurements alone. Unlike correlation, which only shows that variables change together, Granger causality reveals directional relationships with time components.
 
-The biological reality of feedback loops and circular relationships complicates this analysis, as many physiological systems influence each other simultaneously. PhysioNexus helps researchers navigate this complexity by quantifying and visualizing the strength and direction of these interconnected relationships.
+The biological reality of feedback loops and circular relationships complicates this analysis, as many physiological systems influence each other simultaneously. PhysioNexus helps researchers navigate this complexity by quantifying and visualizing the strength and direction of these interconnected relationships through multiple visualization approaches, including interactive network graphs, causal matrix heatmaps, and causal flow diagrams. Additionally, the multivariate causality testing capability allows researchers to detect when combinations of variables jointly influence a target variable - an essential feature for understanding complex physiological systems where multiple signals might work together to drive changes in other systems.
 
 # 🧬 How Does PhysioNexus Work?
 ## Overview 
@@ -14,18 +14,27 @@ PhysioNexus analyzes time series physiological data to reveal cause-and-effect r
 <img width="1072" alt="Screenshot 2025-04-17 at 1 11 01 PM" src="https://github.com/user-attachments/assets/c2406218-d9f0-4f89-8928-30f2835a2bb2" />
 
 - (1) Correlation Analysis: First, the program calculates correlations between all pairs of time series physiologic metrics.
-- (2) Causality Testing: For pairs that exceed a specified correlation threshold, it performs Granger causality tests to determine potential causal relationships.
-- (3) Network Construction: The results are used to build a directed graph where nodes represent physiological variables and edges represent causal relationships.
-- (4) Visualization: The network is visualized with informative attributes that highlight relationship strength and direction, as explained in the next sub-section. 
+- (2) Causality Testing: For pairs that exceed a specified correlation threshold, it performs linear Granger causality tests and/or multivariate causality tests to determine potential causal relationships.
+- (3) Network Construction: The results are used to build a directed graph where nodes represent physiological variables and edges represent causal relationships. For multivariate relationships, special group nodes represent combinations of variables that jointly cause changes in a target variable.
+- (4) Visualization: The network is visualized with informative attributes that highlight relationship strength and direction, through multiple visualization types including network graphs, causal matrices, and flow diagrams.
 - (5) Metric Calculation: Various network metrics are calculated to identify key influencers and relationship structures.
 
 ## Interpreting The Network Visualization
 
 <img width="359" alt="Screenshot 2025-04-17 at 1 12 10 PM" src="https://github.com/user-attachments/assets/73225336-2504-489e-9479-ab7db432b62d" />
 
-The network visualization transforms complex physiological relationships into an intuitive visual map. Arrows between variables show the direction of influence—which variable is causing changes in another. Blue connections indicate positive relationships (variables increase together), while red connections show negative relationships (one increases as another decreases). Thicker connections represent stronger correlations, and larger nodes indicate variables that influence many others, making key physiological drivers immediately apparent.
+The network visualization transforms complex physiological relationships into an intuitive visual map. Arrows between variables show the direction of influence—which variable is causing changes in another. Blue connections indicate positive relationships (variables increase together), while red connections show negative relationships (one increases as another decreases). Purple dotted connections represent multivariate relationships where groups of variables jointly cause changes in a target variable. Additionally, thicker connections represent stronger correlations, and larger nodes indicate variables that influence many others, making key physiological drivers immediately apparent.
 
 The statistical significance of each relationship is measured by its F-statistic and p-value. An F-statistic of 1-4 suggests weak causality with minimal predictive power, while 4-10 indicates moderate evidence with meaningful relationships. Strong causal evidence appears with F-statistics of 10-30, while values above 30 represent extremely strong causal relationships with overwhelming statistical significance (p << 0.001) and major predictive power.
+
+## Additional Visualizations 
+PhysioNexus provides two additional visualization types to enhance understanding of causal relationships:
+- (1) Causal Matrix: This heatmap visualization displays the strength of causal relationships between all variables in a matrix format. The color intensity represents the F-statistic value, with darker colors indicating stronger causal relationships. This visualization is particularly useful for identifying clusters of variables with similar causal profiles and quickly spotting the strongest relationships in the dataset.
+- (2) Causal Flow Diagram (Alluvial/Sankey Diagram): This interactive HTML-based visualization shows the flow of causality between variables, with the width of connections proportional to the strength of causal influence. The interactive nature of this visualization allows for exploration by hovering over connections to see details and repositioning nodes to better understand complex causal structures. Additionally, it provides an intuitive way to understand:
+    - Which variables are major causal "sources" (primarily influencing others)
+    - Which variables are "sinks" (primarily being influenced by others)
+    - The relative strength of different causal pathways
+    - The overall flow of causality through the physiological system
 
 ## Network Metrics and Their Interpretation
 PhysioNexus provides several metrics that reveal different aspects of the physiological system's structure:
@@ -47,28 +56,66 @@ You can install PhysioNexus as a Python package directly from Github using the c
 # Import and use
 from physionexus import PhysioNexus
 ```
-```python
-# Example Usaage
-data = pd.read_csv('Path to your CSV file', header=0)
+### Example 1: Basic Linear Causality Analysis
 
-# Run PhysioNexus directly with custom parameters
+```python
+# Install the PhysioNexus package directly from GitHub
+!pip install git+https://github.com/evanpeikon/PhysioNexus.git
+
+# Import PhysioNexus
+from physionexus import PhysioNexus
+
+# Load your data
+data = pd.read_csv('Path to your CSV file', header=0)
+data.dropna(inplace=True) # Remove rows / columns with missing values 
+
+# Run PhysioNexus with linear causality testing
 G, causal_df = PhysioNexus(
     data=data,  
     exclude_cols=['Time[s]', 'Time[hh:mm:ss]'],   # Replace with your non-feature columns
-    corr_threshold=0.6,                           # Correlation threshold for considering relationships
+    corr_threshold=0.7,                           # Correlation threshold for considering relationships
     f_stat_threshold=10,                          # F-statistic threshold for Granger causality
     p_value_threshold=0.05,                       # P-value threshold for statistical significance
     max_lag=3,                                    # Maximum lag to consider for Granger causality
-    output_dir=None                               # Optional output directory to store results
-)
+    output_dir=None)                              # Output directory to store results
 
-# Display the causal relationships (if any were found)
-if causal_df is not None:
-    print("Found causal relationships:")
-    print(causal_df)
-else:
-    print("No causal relationships were found meeting the specified criteria.")
+
+# Optional: Display causal_df dataframe (uncomment line below to view)
+# causal_df.head()
 ```
+
+### Example 2: Multivariate Causality Analysis
+```python
+# Install the PhysioNexus package directly from GitHub
+!pip install git+https://github.com/evanpeikon/PhysioNexus.git
+
+# Import PhysioNexus
+from physionexus import PhysioNexus
+
+# Load your data
+data = pd.read_csv('Path to your CSV file', header=0)
+data.dropna(inplace=True) # Remove rows / columns with missing values 
+
+# Define multivariate groups to test
+# This example tests whether heart rate, muscle oxygenation, and VO2 jointly cause changes in lactate
+multivariate_groups = {
+    'Lactate': ['Heart_Rate', 'SmO2', 'VO2']} # You can add additional multivariate tests
+
+# Run PhysioNexus with multivariate causality testing
+G, causal_df = PhysioNexus(
+    data=data,  
+    exclude_cols=['Time[s]', 'Time[hh:mm:ss]'],   # Replace with your non-feature columns
+    corr_threshold=0.7,                           # Correlation threshold for considering relationships
+    f_stat_threshold=10,                           # F-statistic threshold for Granger causality
+    p_value_threshold=0.05,                       # P-value threshold for statistical significance
+    max_lag=3,                                    # Maximum lag to consider for Granger causality
+    multivariate_groups=multivariate_groups,      # Define groups for multivariate testing
+    output_dir=None)                              # Output directory to store results
+
+# Optional: Display causal_df dataframe (uncomment line below to view)
+# causal_df.head()
+```
+
 
 # 🧬 Elite Athlete Case Study
 To demonstrate the tool's capabilities, we'll apply it to a case study using data from an athlete performing a ramp incremental exercise test to exhaustion. In this test, the athlete 
@@ -113,14 +160,6 @@ G, causal_df = PhysioNexus(
     output_dir=None
 )
 
-'''
-# Optional: Display the causal relationships (if any were found)
-if causal_df is not None:
-    print("Found causal relationships:")
-    print(causal_df)
-else:
-    print("No causal relationships were found meeting the specified criteria.")
-'''
 ```
 The code above produced the following network and metrics:
 
@@ -196,18 +235,28 @@ Overall, this network analysis provides evidence for a hierarchical yet intercon
 
 # 🧬 Potential Applications, Limitations, and Future Work 
 ## Potential Applications 
-This causal network analysis tool can be applied across fitness, research, and clinical domains, offering new ways to understand complex physiological relationships. 
+PhysioNexus offers powerful analytical capabilities across human performance, research, and clinical domains by revealing complex physiological relationships through causal network analysis. Below i've outlined three areas where PhysioNexus is currently being employed:
 
-In high performance athletic contexts, this tool enables training optimization by identifying the most influential physiological variables, allowing coaches to prioritize interventions that will have the greatest impact on the athlete. This approach supports the creation of individual physiological profiles, highlighting how athletes differ in their regulatory mechanisms and enabling truly personalized training approaches. Additionally, it's possible to evaluate the effects of interventions(training programs, nutritional strategies, etc) by comparing causal networks before and after to see if they fundamentally alter physiological regulation. Perhaps most interestingly, changes in causal structure might serve as early warning indicators of fatigue or overtraining, offering a novel monitoring system that detects subtle shifts in physiological regulation before traditional markers appear.
+- (1) Exercise Physiology Modeling: PhysioNexus is currently being used by professional sports teams and human performance groups within the DoD to map cause-effect relationships in time series data from asseesments and identify physiological drivers and response networks specific to individuals. Using this tool, coaches and human performance specialists can develop truly personalized training approaches based on these unique causal profiles, targeting the most influential variables for maximum impact. 
+- (2) Training Effect Quantification: The causal network approach allows practitioners to quantify that X amount of training causes Y% change in target variables by determining edge weights in the network. By comparing causal networks before and after interventions (training programs, nutritional strategies, etc.), users can evaluate whether these interventions fundamentally alter physiological regulation. Perhaps most valuable is the ability to detect early warning signs of fatigue or overtraining through subtle changes in network structure before traditional markers appear, offering a novel monitoring system with predictive capabilities.
+- (3) Environmental Adaptation Analysis: PhysioNexus enables powerful condition-specific comparisons between different environments or states. Researchers can examine how causal relationships transform when comparing high versus low altitude, earth versus space environments, or healthy versus pathological conditions. The enhanced visualizations, as of version 1.0.0, particularly the causal flow diagram, clearly illustrate which physiological systems function as central hubs in different scenarios and how regulatory mechanisms adapt to environmental challenges. This approach can reveal critical insights into physiological adaptation mechanisms that might be missed by conventional analysis methods.
 
-Beyond standard training applications, PhysioNexus enables powerful condition-specific comparisons between different environments or states. For example, researchers can examine how causal relationships between physiological variables transform when comparing high versus low altitude, earth versus space environments, or healthy versus pathological conditions. These comparisons reveal which physiological systems function as central hubs in different scenarios and how regulatory mechanisms adapt to environmental challenges. In clinical settings, this approach can analyze physiological dysregulation in patient populations, potentially uncovering novel insights into disease mechanisms or treatment responses that might be missed by conventional analysis methods.
+## Current Limitations
+While PhysioNexus offers significant analytical power, several limitations should be considered:
 
-The transformation of causality networks into mathematical simulation models represents perhaps the most ambitious application. By converting identified causal relationships into systems of differential equations and determining parameter weights from time series data, researchers can develop predictive models of physiological responses. This enables simulation of how changes in key variables would cascade through interconnected physiological systems, allowing researchers and practitioners to test hypothetical scenarios before implementation. Such models could predict how adjustments in specific trainable aspects (like muscle oxygenation patterns) might affect other critical variables, creating a virtual physiological testing ground for optimizing interventions.
+- (1) Linear Assumptions: The current implementation focuses on linear Granger causality and linear multivariate testing, which may not fully capture complex physiological relationships that often involve nonlinear dynamics. For instance, the relationship between heart rate variability and respiratory patterns typically follows nonlinear patterns that the current model might oversimplify.
+- (2) Temporal Sensitivity: The analysis is sensitive to the sampling rate of the data, and different causal relationships may emerge at different time scales, potentially missing important connections that operate on very fast or slow timescales. For example, when analyzing muscle oxygenation data, sampling at 1Hz vs. 10Hz vs. 100Hz can yield substantially different causal networks. 
+- (3) Hidden Variables: Unmeasured variables could drive apparent causal relationships between measured variables, creating misleading connections in the network.
+- (4) Stationarity Assumption: The underlying statistical methods assume that the relationships between variables remain constant over time, which may not hold during dynamic physiological processes like exercise where regulation strategies can shift. For example, during incremental exercise tests, I've observed that causal relationships between VO2 and muscle oxygenation can subtely change above critical power, violating the stationarity assumption. 
 
-## Limitations and Future Work
-While powerful, this approach has several limitations to consider. Granger causality assumes linearity and stationarity, which may not fully capture complex physiological relationships that often involve nonlinear dynamics and time-varying parameters. The analysis is sensitive to the sampling rate of the data, and different causal relationships may emerge at different time scales, potentially missing important connections that operate on very fast or slow timescales. Additionally, unmeasured variables could drive apparent causal relationships between measured variables, creating misleading connections in the network.
+## Extensions and Future Work
+Several extensions could enhance PhysioNexus's capabilities and address current limitations:
 
-Future work could address these limitations through several avenues. Implementing information-theoretic or nonlinear causality measures would better capture the complex nonlinear interactions in physiological systems. Analyzing causality at different temporal resolutions would help identify relationships that operate at various timescales. Adding physiological constraints to the causal discovery process would incorporate domain knowledge to guide the analysis. Developing robust methods to translate causal networks into accurate simulation models would enhance predictive capabilities. Examining how causal networks evolve during different exercise phases would capture the dynamic nature of physiological regulation during changing conditions. Finally, creating standardized protocols for comparing causal networks across different environmental conditions would strengthen the tool's utility for understanding adaptive physiological responses.
+- (1) Nonlinear Analysis: Implementing nonlinear causality measures using transfer entropy would better capture complex interactions in physiological systems that don't follow linear patterns. This would extend the tool's ability to detect subtle but important causal relationships that current methods might miss.
+- (2) Multi-Scale Analysis: Developing functionality to analyze causality at different temporal resolutions would identify relationships that operate across various timescales, providing a more complete understanding of fast-acting and slow-developing physiological responses.
+- (3) Differential Equation Modeling: Transforming causal networks into systems of ordinary differential equations would enable simulation and prediction of physiological responses. This would allow users to test hypothetical scenarios before implementation, creating a virtual physiological testing ground for optimizing interventions.
+- (4) Dynamic Network Analysis: Extending the tool to examine how causal networks evolve during different exercise phases would capture the dynamic nature of physiological regulation during changing conditions, revealing how control mechanisms shift as the body responds to increasing demands.
+- (5) Standardized Protocols: Developing protocols for comparing causal networks across different conditions would strengthen the tool's utility for understanding adaptive physiological responses and establish methodological consistency for research applications.
 
 # 🧬 Contributing and Support
 PhysioNexus is an open-source project and welcomes contributions from the community. If you encounter issues, have suggestions for improvements, or would like to contribute to the project, feel free to reach out: evanpeikon@gmail.com.
