@@ -11,7 +11,6 @@ setup(
         "seaborn",
         "networkx",
         "statsmodels",
-        "os",
         "scipy",
         "scikit-learn",
         "plotly"
