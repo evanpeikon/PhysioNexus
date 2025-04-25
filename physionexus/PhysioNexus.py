@@ -7,95 +7,6 @@ from statsmodels.tsa.stattools import grangercausalitytests
 import statsmodels.api as sm
 import os
 import scipy.stats
-from sklearn.neighbors import NearestNeighbors
-import plotly.graph_objects as go
-
-def transfer_entropy(x, y, k=5, max_lag=2):
-    """
-    Calculate transfer entropy which can detect nonlinear causal relationships
-    
-    Parameters:
-    - x: Potential cause time series
-    - y: Effect time series
-    - k: Number of nearest neighbors
-    - max_lag: Maximum lag to test
-    
-    Returns:
-    - te: Transfer entropy
-    - normalized_te: Normalized transfer entropy
-    - p_value: p-value from surrogate testing
-    - best_lag: Lag with highest transfer entropy
-    """
-    best_te = 0
-    best_norm_te = 0
-    best_p = 1
-    best_lag = 0
-    
-    for lag in range(1, max_lag + 1):
-        # Create lagged versions
-        x_lagged = x[:-lag].values.reshape(-1, 1)
-        y_lagged = y[:-lag].values.reshape(-1, 1)
-        y_current = y[lag:].values.reshape(-1, 1)
-        
-        # Calculate entropies using KNN approach
-        k = min(k, len(x_lagged) - 1)  # Ensure k is not too large
-        
-        # Joint spaces
-        xy = np.hstack([x_lagged, y_lagged])
-        xyz = np.hstack([x_lagged, y_lagged, y_current])
-        
-        # Find k-nearest neighbors
-        knn_xy = NearestNeighbors(n_neighbors=k+1).fit(xy)
-        dist_xy, _ = knn_xy.kneighbors(xy)
-        epsilon_xy = dist_xy[:, -1]  # Distance to kth neighbor
-        
-        knn_xyz = NearestNeighbors(n_neighbors=k+1).fit(xyz)
-        dist_xyz, _ = knn_xyz.kneighbors(xyz)
-        epsilon_xyz = dist_xyz[:, -1]
-        
-        # Calculate entropy terms
-        n = len(x_lagged)
-        te = np.mean(np.log(epsilon_xy/epsilon_xyz)) + np.log(n)
-        
-        # Normalize by the entropy of Y
-        knn_y = NearestNeighbors(n_neighbors=k+1).fit(y_current)
-        dist_y, _ = knn_y.kneighbors(y_current)
-        epsilon_y = dist_y[:, -1]
-        h_y = np.mean(np.log(epsilon_y)) + np.log(n)
-        norm_te = te / h_y if h_y != 0 else 0
-        
-        # Calculate p-value through permutation testing
-        num_surrogates = 100
-        surrogate_tes = []
-        
-        for _ in range(num_surrogates):
-            # Shuffle x to destroy causality
-            x_shuffle = np.random.permutation(x_lagged)
-            
-            # Calculate TE with shuffled data
-            xy_shuf = np.hstack([x_shuffle, y_lagged])
-            xyz_shuf = np.hstack([x_shuffle, y_lagged, y_current])
-            
-            knn_xy_shuf = NearestNeighbors(n_neighbors=k+1).fit(xy_shuf)
-            dist_xy_shuf, _ = knn_xy_shuf.kneighbors(xy_shuf)
-            epsilon_xy_shuf = dist_xy_shuf[:, -1]
-            
-            knn_xyz_shuf = NearestNeighbors(n_neighbors=k+1).fit(xyz_shuf)
-            dist_xyz_shuf, _ = knn_xyz_shuf.kneighbors(xyz_shuf)
-            epsilon_xyz_shuf = dist_xyz_shuf[:, -1]
-            
-            te_shuf = np.mean(np.log(epsilon_xy_shuf/epsilon_xyz_shuf)) + np.log(n)
-            surrogate_tes.append(te_shuf)
-        
-        p_value = np.mean(np.array(surrogate_tes) >= te)
-        
-        if te > best_te:
-            best_te = te
-            best_norm_te = norm_te
-            best_p = p_value
-            best_lag = lag
-    
-    return best_te, best_norm_te, best_p, best_lag
 
 def check_multivariate_granger_causality(data, target, predictors, max_lag=2, f_stat_threshold=10, p_value_threshold=0.05):
     """
@@ -221,13 +132,11 @@ def visualize_enhanced_network(G, output_dir):
             node_sizes.append(300 * (1 + G.out_degree(node)))
     
     # Separate edges by type
-    linear_edges = [(u, v) for u, v in G.edges() if 'te' not in G[u][v] and G.nodes[u].get('node_type') != 'group']
-    nonlinear_edges = [(u, v) for u, v in G.edges() if 'te' in G[u][v]]
+    linear_edges = [(u, v) for u, v in G.edges() if G.nodes[u].get('node_type') != 'group']
     multivar_edges = [(u, v) for u, v in G.edges() if G.nodes[u].get('node_type') == 'group']
     
     # Edge colors and styles
     linear_colors = [G[u][v]['color'] for u, v in linear_edges]
-    nonlinear_colors = ['green' for _ in nonlinear_edges]
     multivar_colors = ['purple' for _ in multivar_edges]
     
     # Create layout
@@ -240,12 +149,6 @@ def visualize_enhanced_network(G, output_dir):
     if linear_edges:
         nx.draw_networkx_edges(G, pos, edgelist=linear_edges, width=2, 
                               edge_color=linear_colors, style='solid', 
-                              alpha=0.7, arrows=True, arrowstyle='->', arrowsize=10,
-                              connectionstyle='arc3,rad=0.1')
-    
-    if nonlinear_edges:
-        nx.draw_networkx_edges(G, pos, edgelist=nonlinear_edges, width=2,
-                              edge_color=nonlinear_colors, style='dashed',
                               alpha=0.7, arrows=True, arrowstyle='->', arrowsize=10,
                               connectionstyle='arc3,rad=0.1')
     
@@ -268,11 +171,6 @@ def visualize_enhanced_network(G, output_dir):
             Line2D([0], [0], color='red', lw=2, label='Negative Linear Causality')
         ])
     
-    if nonlinear_edges:
-        legend_elements.append(
-            Line2D([0], [0], color='green', linestyle='dashed', lw=2, label='Nonlinear Causality')
-        )
-    
     if multivar_edges:
         legend_elements.append(
             Line2D([0], [0], color='purple', linestyle='dotted', lw=3, label='Multivariate Causality')
@@ -284,61 +182,11 @@ def visualize_enhanced_network(G, output_dir):
     plt.title('Enhanced Causal Network')
     plt.axis('off')
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'enhanced_causal_network.png'))
-    plt.close()
-
-def create_alluvial_diagram(G, output_dir):
-    """
-    Create an alluvial (Sankey) diagram showing causal flows
-    """
-    if G.number_of_nodes() == 0:
-        print("No nodes in graph. Skipping alluvial diagram.")
-        return
-        
-    # Create source, target, and value lists for Sankey diagram
-    source = []
-    target = []
-    value = []
-    label = []
+    plt.savefig(os.path.join(output_dir, 'causal_network.png'))
     
-    # Get unique nodes and assign indices
-    all_nodes = list(G.nodes())
-    node_dict = {node: i for i, node in enumerate(all_nodes)}
-    
-    # Create node labels
-    label = all_nodes
-    
-    # Create links
-    for u, v, data in G.edges(data=True):
-        source.append(node_dict[u])
-        target.append(node_dict[v])
-        
-        # Use appropriate value based on edge type
-        if 'f_stat' in data:
-            value.append(data['f_stat'])
-        elif 'te' in data:
-            value.append(data['te'] * 10)  # Scale transfer entropy
-        else:
-            value.append(abs(data.get('correlation', 0.5)) * 10)  # Default fallback
-    
-    # Create figure
-    fig = go.Figure(data=[go.Sankey(
-        node=dict(
-            pad=15,
-            thickness=20,
-            line=dict(color="black", width=0.5),
-            label=label
-        ),
-        link=dict(
-            source=source,
-            target=target,
-            value=value
-        )
-    )])
-    
-    fig.update_layout(title_text="Causal Flow Diagram", font_size=10)
-    fig.write_html(os.path.join(output_dir, 'causal_flow.html'))
-    print(f"Alluvial diagram saved to {os.path.join(output_dir, 'causal_flow.html')}")
+    # Display the plot
+    plt.show()
+    print(f"Network visualization saved to {os.path.join(output_dir, 'causal_network.png')}")
 
 def create_causal_matrix(G, output_dir):
     """
@@ -361,8 +209,6 @@ def create_causal_matrix(G, output_dir):
             if G.has_edge(source, target):
                 if 'f_stat' in G[source][target]:
                     causal_matrix[i, j] = G[source][target]['f_stat']
-                elif 'te' in G[source][target]:
-                    causal_matrix[i, j] = G[source][target]['te'] * 10  # Scale for visibility
     
     # Create heatmap
     plt.figure(figsize=(12, 10))
@@ -373,14 +219,16 @@ def create_causal_matrix(G, output_dir):
     plt.ylabel('Cause')
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'causal_matrix.png'))
-    plt.close()
+    
+    # Display the plot
+    plt.show()
     print(f"Causal matrix saved to {os.path.join(output_dir, 'causal_matrix.png')}")
 
 def PhysioNexus(data, exclude_cols=2, corr_threshold=0.6, f_stat_threshold=10, 
                 p_value_threshold=0.05, max_lag=2, output_dir=None, 
-                causality_type='linear', k_neighbors=5, multivariate_groups=None):
+                multivariate_groups=None):
     """
-    Enhanced PhysioNexus function with multiple causality detection options
+    Simplified PhysioNexus function with linear causality detection
     
     Parameters:
     - data: DataFrame with time series data
@@ -390,8 +238,6 @@ def PhysioNexus(data, exclude_cols=2, corr_threshold=0.6, f_stat_threshold=10,
     - p_value_threshold: Maximum p-value for significance
     - max_lag: Maximum lag to test for causality
     - output_dir: Directory to save visualizations
-    - causality_type: One of 'linear', 'nonlinear', or 'both'
-    - k_neighbors: Parameter for transfer entropy calculation
     - multivariate_groups: Dictionary mapping target variables to lists of potential causal variables
     
     Returns:
@@ -440,64 +286,33 @@ def PhysioNexus(data, exclude_cols=2, corr_threshold=0.6, f_stat_threshold=10,
     filtered_columns = data_filtered.columns  # Make sure we only use columns from the filtered data
     
     # Test for linear causality (Granger)
-    if causality_type in ['linear', 'both']:
-        print("Testing linear causal relationships using Granger causality...")
-        for i, col1 in enumerate(filtered_columns):
-            for j, col2 in enumerate(filtered_columns):
-                # Don't test self-causality
-                if i != j:
-                    corr_value = correlation_matrix.loc[col1, col2]
-                    # Only test causality if correlation meets threshold
-                    if abs(corr_value) >= corr_threshold:
-                        # Check causality
-                        a_causes_b, f_ab, p_ab, lag_ab = check_granger_causality(
-                            data_filtered[col1], data_filtered[col2], 
-                            max_lag=max_lag, 
-                            f_stat_threshold=f_stat_threshold, 
-                            p_value_threshold=p_value_threshold
-                        )
-                        
-                        # Add edge if causality is detected
-                        if a_causes_b:
-                            G.add_edge(col1, col2, 
-                                      weight=abs(corr_value),
-                                      correlation=corr_value,
-                                      color='red' if corr_value < 0 else 'blue',
-                                      f_stat=f_ab,
-                                      p_value=p_ab,
-                                      lag=lag_ab,
-                                      causality_type='linear')
-                            causal_edges += 1
-    
-    # Test for nonlinear causality (Transfer Entropy)
-    if causality_type in ['nonlinear', 'both']:
-        print("Testing nonlinear causal relationships using transfer entropy...")
-        for i, col1 in enumerate(filtered_columns):
-            for j, col2 in enumerate(filtered_columns):
-                if i != j:
-                    corr_value = correlation_matrix.loc[col1, col2]
-                    if abs(corr_value) >= corr_threshold:
-                        # Skip if we already found linear causality and don't want to duplicate
-                        if causality_type == 'both' and G.has_edge(col1, col2):
-                            continue
-                            
-                        te, norm_te, p_value, lag = transfer_entropy(
-                            data_filtered[col1], data_filtered[col2], 
-                            k=k_neighbors, max_lag=max_lag
-                        )
-                        
-                        # Use transfer entropy threshold and p-value for significance
-                        if norm_te > 0.05 and p_value < p_value_threshold:
-                            G.add_edge(col1, col2,
-                                      weight=abs(corr_value),
-                                      correlation=corr_value,
-                                      color='green',  # Use green for nonlinear
-                                      te=te,
-                                      norm_te=norm_te,
-                                      p_value=p_value,
-                                      lag=lag,
-                                      causality_type='nonlinear')
-                            causal_edges += 1
+    print("Testing linear causal relationships using Granger causality...")
+    for i, col1 in enumerate(filtered_columns):
+        for j, col2 in enumerate(filtered_columns):
+            # Don't test self-causality
+            if i != j:
+                corr_value = correlation_matrix.loc[col1, col2]
+                # Only test causality if correlation meets threshold
+                if abs(corr_value) >= corr_threshold:
+                    # Check causality
+                    a_causes_b, f_ab, p_ab, lag_ab = check_granger_causality(
+                        data_filtered[col1], data_filtered[col2], 
+                        max_lag=max_lag, 
+                        f_stat_threshold=f_stat_threshold, 
+                        p_value_threshold=p_value_threshold
+                    )
+                    
+                    # Add edge if causality is detected
+                    if a_causes_b:
+                        G.add_edge(col1, col2, 
+                                  weight=abs(corr_value),
+                                  correlation=corr_value,
+                                  color='red' if corr_value < 0 else 'blue',
+                                  f_stat=f_ab,
+                                  p_value=p_ab,
+                                  lag=lag_ab,
+                                  causality_type='linear')
+                        causal_edges += 1
     
     # Add multivariate causality if specified
     if multivariate_groups:
@@ -548,7 +363,7 @@ def PhysioNexus(data, exclude_cols=2, corr_threshold=0.6, f_stat_threshold=10,
         else:
             print(f"Removed nodes: {', '.join(nodes_to_remove[:5])}... and {len(nodes_to_remove)-5} more")
     
-    # 5. Visualize the correlation heatmap
+    # Visualize the correlation heatmap
     plt.figure(figsize=(12, 10))
     mask = np.triu(np.ones_like(correlation_matrix, dtype=bool))
     cmap = sns.diverging_palette(230, 20, as_cmap=True)
@@ -557,15 +372,15 @@ def PhysioNexus(data, exclude_cols=2, corr_threshold=0.6, f_stat_threshold=10,
     plt.title('Correlation Matrix Heatmap')
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'correlation_heatmap.png'))
-    plt.close()
+    
+    # Display the plot
+    plt.show()
+    print(f"Correlation heatmap saved to {os.path.join(output_dir, 'correlation_heatmap.png')}")
     
     # Create enhanced visualizations
     if G.number_of_nodes() > 0:
         # Enhanced network visualization
         visualize_enhanced_network(G, output_dir)
-        
-        # Alluvial diagram
-        create_alluvial_diagram(G, output_dir)
         
         # Causal matrix
         create_causal_matrix(G, output_dir)
@@ -612,8 +427,6 @@ def PhysioNexus(data, exclude_cols=2, corr_threshold=0.6, f_stat_threshold=10,
         # Strongest causal relationships
         linear_edges = [(u, v, data) for u, v, data in G.edges(data=True) 
                         if data.get('causality_type') == 'linear']
-        nonlinear_edges = [(u, v, data) for u, v, data in G.edges(data=True) 
-                          if data.get('causality_type') == 'nonlinear']
         multivar_edges = [(u, v, data) for u, v, data in G.edges(data=True) 
                          if data.get('causality_type') == 'multivariate']
         
@@ -622,12 +435,6 @@ def PhysioNexus(data, exclude_cols=2, corr_threshold=0.6, f_stat_threshold=10,
             sorted_linear = sorted(linear_edges, key=lambda x: x[2]['f_stat'], reverse=True)
             for u, v, data in sorted_linear[:min(5, len(sorted_linear))]:
                 print(f"{u} → {v}: F={data['f_stat']:.2f}, p={data['p_value']:.5f}, correlation={data.get('correlation', 'N/A')}")
-        
-        if nonlinear_edges:
-            print("\nTop nonlinear causal relationships by transfer entropy:")
-            sorted_nonlinear = sorted(nonlinear_edges, key=lambda x: x[2]['te'], reverse=True)
-            for u, v, data in sorted_nonlinear[:min(5, len(sorted_nonlinear))]:
-                print(f"{u} → {v}: TE={data['te']:.4f}, norm_TE={data['norm_te']:.4f}, p={data['p_value']:.5f}")
         
         if multivar_edges:
             print("\nMultivariate causal relationships:")
@@ -652,16 +459,6 @@ def PhysioNexus(data, exclude_cols=2, corr_threshold=0.6, f_stat_threshold=10,
                     data.get('p_value', None),  # p-value
                     data.get('lag', None),     # Optimal lag
                     "Linear"))                 # Causality type
-            elif relationship_type == 'nonlinear':
-                causal_relationships.append((
-                    u,  # Cause
-                    v,  # Effect
-                    data.get('correlation', None),  # Correlation value
-                    "Positive" if data.get('correlation', 0) > 0 else "Negative",  # Correlation type
-                    data.get('te', None),      # Transfer entropy
-                    data.get('p_value', None), # p-value
-                    data.get('lag', None),     # Optimal lag
-                    "Nonlinear"))              # Causality type
             elif relationship_type == 'multivariate':
                 causal_relationships.append((
                     u,  # Cause (group)
@@ -675,13 +472,14 @@ def PhysioNexus(data, exclude_cols=2, corr_threshold=0.6, f_stat_threshold=10,
         
         # Convert to DataFrame and sort by causality strength
         causal_df = pd.DataFrame(causal_relationships, 
-                                 columns=["Cause", "Effect", "Correlation/TE", "Correlation Type", 
-                                         "Strength", "p-value", "Optimal Lag", "Causality Type"])
+                                 columns=["Cause", "Effect", "Correlation", "Correlation Type", 
+                                         "F-statistic", "p-value", "Optimal Lag", "Causality Type"])
         
-        # Sort by strength (whether F-stat or TE)
-        causal_df = causal_df.sort_values(by="Strength", ascending=False)
+        # Sort by strength (F-stat)
+        causal_df = causal_df.sort_values(by="F-statistic", ascending=False)
+        
+        # Print the DataFrame
+        print("\nCausal relationships found:")
+        print(causal_df)
         
     return G, causal_df
-
-
-
